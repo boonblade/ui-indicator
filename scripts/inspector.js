@@ -299,9 +299,9 @@
     Object.assign(on.style, { color: '#fff', background: '#e35d5d', border: '1px solid #e35d5d' });
     if (m === 'inspect') { pending = []; renderPending(); }
   };
-  const inspectB = tbBtn('🔍 Inspect', () => setMode('inspect'));
-  const annotateB = tbBtn('✏️ Annotate', () => setMode('annotate'));
-  const promptB = copyBtn('⧉ 프롬프트 복사', buildPrompt, { borderRadius: '999px', padding: '4px 10px', marginRight: '0' });
+  const inspectB = tbBtn('Inspect', () => setMode('inspect'));
+  const annotateB = tbBtn('Annotate', () => setMode('annotate'));
+  const promptB = copyBtn('Copy Prompt', buildPrompt, { borderRadius: '999px', padding: '4px 10px', marginRight: '0', background: 'transparent', border: '1px solid transparent' });
   const offB = tbBtn('✕', () => window.__uiIndicator.disable());
   toolbar.append(inspectB, annotateB, promptB, offB);
   setMode('inspect');
