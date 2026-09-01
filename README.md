@@ -19,9 +19,21 @@
 
 ## 빠른 시작
 
-### 1) 그냥 써보기 (아무 페이지)
+### 1) 자동로드 없이 쓰기 (설치 0 · 아무 페이지)
 
-브라우저 콘솔에 `scripts/inspector.js` 내용을 붙여넣어 실행 — 하단 툴바가 뜨면 끝. (북마클릿으로 저장해두면 클릭 1번.)
+**콘솔 붙여넣기** — 일회용으로 가장 빠름:
+1. 대상 페이지에서 `F12` → Console 탭
+2. `scripts/inspector.js` 파일 내용 전체를 붙여넣고 Enter
+3. 하단 툴바(`Indicator · Comment · Copy Prompt · ✕`)가 뜨면 끝
+
+**북마클릿** — 클릭 1번으로 재사용:
+1. 브라우저에서 새 북마크 생성
+2. URL 칸에 `javascript:` 를 직접 타이핑한 뒤(붙여넣기 시 접두어가 지워지는 브라우저가 있음), 이어서 `scripts/inspector.js` 내용 전체를 붙여넣고 저장
+3. 아무 페이지에서 그 북마크 클릭 = 주입
+
+**Claude Code에서** — `/ui-indicator` 호출하면 Claude가 브라우저 팬에 대신 주입해줌(SKILL.md 참조).
+
+수동 주입 공통 한계: **새로고침·페이지 이동 시 소멸**(다시 주입), 주석 자동 수집 없음 → 주석은 `Copy Prompt` 버튼으로 지시문을 복사해 AI에게 붙여넣어 전달.
 
 ### 2) Vite 프로젝트에 자동로드 설치 (권장)
 
@@ -69,7 +81,54 @@ if (import.meta.env.DEV) {
 
 접속: `http://localhost:<port>/<경로>?ui=1` 또는 아무 화면에서 `Ctrl+Shift+U`.
 
-비-Vite: 같은 원리(dev 전용 서빙 + 게이트) — webpack `devServer.setupMiddlewares` · Next.js dev 전용 route handler · 백엔드 템플릿 서빙은 dev 라우트 1개 + 조건부 `<script>`. 손 못 대는 사이트는 북마클릿/Tampermonkey.
+다른 스택도 원리는 동일(① dev 전용으로 inspector.js 서빙 ② 게이트 스크립트) — 스택별 가이드는 늘리지 않는다. AI 코딩 도구 사용 중이면 "ui-indicator 자동로드 설치해줘"로 해당 스택에 맞게 이식시키면 됨. 손 못 대는 사이트는 북마클릿/Tampermonkey.
+
+### 3) Django에 자동로드 설치
+
+`urls.py` — DEBUG일 때만 파일 서빙:
+
+```python
+from pathlib import Path
+from django.conf import settings
+from django.http import Http404, HttpResponse
+from django.urls import path
+
+def ui_indicator_js(request):
+    if not settings.DEBUG:
+        raise Http404
+    js = (Path(settings.BASE_DIR) / "ui-indicator" / "scripts" / "inspector.js").read_text(encoding="utf-8")
+    resp = HttpResponse(js, content_type="text/javascript; charset=utf-8")
+    resp["Cache-Control"] = "no-store"
+    return resp
+
+urlpatterns = [
+    path("__ui-indicator.js", ui_indicator_js),
+    # ...기존 패턴
+]
+```
+
+공통 템플릿(`base.html`) `</body>` 직전 — `?ui=1` 게이트 + Ctrl+Shift+U:
+
+```html
+{% if debug %}
+<script>
+(function () {
+  var q = new URLSearchParams(location.search).get('ui')
+  if (q === '1') sessionStorage.setItem('ui-indicator', '1')
+  else if (q === '0') sessionStorage.removeItem('ui-indicator')
+  function load() { var s = document.createElement('script'); s.src = '/__ui-indicator.js'; document.body.appendChild(s) }
+  if (sessionStorage.getItem('ui-indicator') === '1') load()
+  window.addEventListener('keydown', function (e) {
+    if (!(e.ctrlKey && e.shiftKey && e.code === 'KeyU')) return
+    if (window.__uiIndicator) return
+    sessionStorage.setItem('ui-indicator', '1'); load()
+  })
+})()
+</script>
+{% endif %}
+```
+
+`{% if debug %}`는 `django.template.context_processors.debug` 활성 + `INTERNAL_IPS`에 접속 IP 등록이 전제(안 쓰면 뷰가 DEBUG 게이트라 태그 없이 넣어도 프로덕션에선 404). 주석 자동 수집을 원하면 아래 "AI 연동 규약"의 `/api/dev/ui-annotations` 3개 엔드포인트를 DEBUG 전용 뷰로 동일하게 구현(인메모리 dict면 충분).
 
 ### 3) Claude Code 스킬로 설치
 
