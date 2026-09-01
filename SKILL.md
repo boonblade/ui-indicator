@@ -6,7 +6,7 @@ description: Use when 사용자가 화면 요소를 이름으로 특정하거나
 # ui-indicator
 
 개발자도구 인스펙터식 오버레이를 화면에 주입한다. 어느 사이트든 동작(순수 DOM). 페이지 소스는 건드리지 않는다(주입 전용).
-- **Inspect 모드**: hover=요소 테두리+고유 선택자 이름표, 클릭=우측 속성 판넬(NAME/DESIGN TERM/SPEC + 선택자·JSON 복사).
+- **Indicator 모드**: hover=요소 테두리+고유 선택자 이름표, 클릭=우측 속성 판넬(NAME/DESIGN TERM/SPEC + 선택자·JSON 복사).
 - **Annotate 모드**: 클릭(재클릭=해제) 또는 **드래그 영역**(사각형에 완전 포함된 최상위 요소들)으로 다중 선택 → 우측하단 "N elements selected" 판넬에서 메모 입력 → Add = 주석 확정 + 각 요소에 번호 뱃지(뱃지 클릭=삭제).
 
 ## 켜기
@@ -15,12 +15,12 @@ description: Use when 사용자가 화면 요소를 이름으로 특정하거나
 
 1. 브라우저 팬으로 대상 URL 이동(URL 미지정이면 현재 열린 탭 또는 프로젝트 dev 서버 주소 사용, 없으면 질문).
 2. `scripts/inspector.js` 파일 내용을 **그대로** `javascript_tool`로 실행(수정·요약 금지). 반환값 "주입 완료" 확인.
-3. 사용자 안내(3줄): 하단 툴바 Inspect/Annotate 전환 · Annotate=클릭·드래그로 여러 개 선택 후 메모 Add · Esc=선택 취소/일시정지(끄면 앱 정상 조작).
+3. 사용자 안내(3줄): 하단 툴바 Indicator/Annotate 전환 · Annotate=클릭·드래그로 여러 개 선택 후 메모 Add · Esc=선택 취소/일시정지(끄면 앱 정상 조작).
 
 ## 판독 (핵심)
 
 ```js
-window.__uiSelections    // Inspect 클릭 기록 [{selector, tag, id, classes, term, text, size, styles, at}] 최근 20개
+window.__uiSelections    // Indicator 클릭 기록 [{selector, tag, id, classes, term, text, size, styles, at}] 최근 20개
 window.__uiAnnotations   // 주석 [{n, note, url, targets:[{selector, term, page}], at}]
 window.__uiIndicator.prompt()  // 주석을 수정 지시문으로 조립한 텍스트
 ```
@@ -30,7 +30,7 @@ window.__uiIndicator.prompt()  // 주석을 수정 지시문으로 조립한 텍
 
 ## 자동로드 설치 ("ui-indicator 자동로드 설치해줘" 요청 시)
 
-README.md의 스니펫대로: ① dev 전용으로 `scripts/inspector.js`를 `/__ui-indicator.js`로 서빙(`Cache-Control: no-store`) ② 엔트리에 `?ui=1`/`?ui=0` 게이트(sessionStorage `ui-indicator`) + Ctrl+Shift+U 콜드스타트 리스너(`window.__uiIndicator` 없을 때만 로드) ③ (선택) 주석 수집 API `POST/GET/DELETE /api/dev/ui-annotations`(인메모리·상한 100) ④ 검증: `?ui=1` 접속 → 툴바 → Inspect 클릭 판넬·Annotate Add·단축키 토글.
+README.md의 스니펫대로: ① dev 전용으로 `scripts/inspector.js`를 `/__ui-indicator.js`로 서빙(`Cache-Control: no-store`) ② 엔트리에 `?ui=1`/`?ui=0` 게이트(sessionStorage `ui-indicator`) + Ctrl+Shift+U 콜드스타트 리스너(`window.__uiIndicator` 없을 때만 로드) ③ (선택) 주석 수집 API `POST/GET/DELETE /api/dev/ui-annotations`(인메모리·상한 100) ④ 검증: `?ui=1` 접속 → 툴바 → Indicator 클릭 판넬·Annotate Add·단축키 토글.
 
 비-Vite도 같은 원리: webpack=`devServer.setupMiddlewares` · Next.js=dev 전용 route handler(프로덕션 404) · 백엔드 템플릿 서빙=dev 라우트 1개 + 조건부 script 태그. dev 서버가 없거나 손 못 대는 사이트=북마클릿(inspector.js 전체를 북마크 URL로) 또는 Tampermonkey, 최후 폴백=브라우저 팬 수동 주입.
 

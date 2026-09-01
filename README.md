@@ -8,13 +8,13 @@
 
 ## 기능
 
-- **Inspect 모드**: hover = 요소 테두리 + 고유 선택자 이름표 · 클릭 = 우측 속성 판넬
+- **Indicator 모드**: hover = 요소 테두리 + 고유 선택자 이름표 · 클릭 = 우측 속성 판넬
   - **NAME**: 요소 이름 + 종류 배지(ID/CLASS/TESTID/TAG) + 전체 선택자 경로 + 선택자/JSON 복사
   - **DESIGN TERM**: 요소 역할 자동 판별(BUTTON·LINK·INPUT·CARD·TEXT 등 12종) + 한 줄 설명
   - **SPEC**: 태그·크기 + 클래스·텍스트 + computed style 표
 - **Annotate 모드**: 클릭(재클릭=해제) 또는 **드래그 영역**(사각형에 완전 포함된 최상위 요소만)으로 다중 선택 → "N elements selected" 판넬에서 메모 → **Add** → 요소마다 번호 뱃지(뱃지 클릭=삭제)
 - **고유 선택자 자동 생성**: id > data-testid > 클래스+nth-of-type 조합으로 문서 내 유일한 최단 경로 — 유틸 클래스 위주 코드베이스에서도 모호하지 않음
-- **AI 연동 기록**: 선택·주석이 `window.__uiSelections` / `window.__uiAnnotations`에 쌓임 — AI가 직접 판독. `⧉ 프롬프트 복사` 버튼은 주석을 수정 지시문으로 조립
+- **AI 연동 기록**: 선택·주석이 `window.__uiSelections` / `window.__uiAnnotations`에 쌓임 — AI가 직접 판독. `Copy Prompt` 버튼은 주석을 수정 지시문으로 조립
 - **온오프**: `Ctrl+Shift+U` 토글(탭 세션 유지) · URL `?ui=1`/`?ui=0` · 툴바 ✕ · `Esc` = 선택 취소/일시정지
 
 ## 빠른 시작
@@ -82,7 +82,7 @@ git clone https://github.com/boonblade/ui-indicator.git ~/.claude/skills/ui-indi
 ## AI 연동 규약
 
 ```js
-window.__uiSelections        // Inspect 클릭 기록 [{selector, tag, id, classes, term, text, size, styles, at}] 최근 20개
+window.__uiSelections        // Indicator 클릭 기록 [{selector, tag, id, classes, term, text, size, styles, at}] 최근 20개
 window.__uiAnnotations       // 주석 [{n, note, url, targets:[{selector, term, page}], at}]
 window.__uiIndicator.prompt() // 주석 → 수정 지시문 텍스트
 window.__uiIndicator.enable() / .disable()
@@ -98,7 +98,7 @@ window.__uiIndicator.enable() / .disable()
 
 ## 워크플로 예시 (Claude Code)
 
-1. `?ui=1` 화면에서 ✏️ Annotate → 요소 드래그 → 메모 "글자 한 단계 키워줘" → Add
+1. `?ui=1` 화면에서 Annotate → 요소 드래그 → 메모 "글자 한 단계 키워줘" → Add
 2. Claude에게: **"주석 확인해서 수정해줘"**
 3. Claude가 주석(선택자·역할·메모)을 판독 → 소스에서 해당 컴포넌트 특정 → 수정 → 번호별 보고
 
