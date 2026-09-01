@@ -13,6 +13,7 @@
   const pendMarks = document.createElement('div');// 선택 중 테두리(페이지 좌표)
   const annPanel = document.createElement('div'); // 우측하단 "N elements selected" 판넬
   const band = document.createElement('div');     // 드래그 영역 사각형
+  const glass = document.createElement('div');    // 유리판 — 모드 중 모든 마우스를 받아 disabled 요소·드롭다운도 선택 가능
   Object.assign(box.style, {
     position: 'fixed', zIndex: ROOT_Z, pointerEvents: 'none',
     border: '2px solid #4f8ef7', background: 'rgba(79,142,247,0.08)',
@@ -48,8 +49,11 @@
     position: 'fixed', zIndex: ROOT_Z + 1, pointerEvents: 'none', display: 'none',
     border: '1.5px dashed #e35d5d', background: 'rgba(227,93,93,0.06)',
   });
-  document.body.append(box, badge, panel, toolbar, markers, pendMarks, annPanel, band);
-  [box, badge, panel, toolbar, markers, pendMarks, annPanel, band].forEach((n) => { n.dataset.uiind = '1'; });
+  Object.assign(glass.style, {
+    position: 'fixed', inset: '0', zIndex: ROOT_Z - 1, background: 'transparent', cursor: 'crosshair',
+  });
+  document.body.append(glass, box, badge, panel, toolbar, markers, pendMarks, annPanel, band);
+  [box, badge, panel, toolbar, markers, pendMarks, annPanel, band, glass].forEach((n) => { n.dataset.uiind = '1'; });
 
   const seg = (el) => {
     if (el.id) return '#' + CSS.escape(el.id);
@@ -308,6 +312,9 @@
 
   let target = null;
   const ours = (el) => el instanceof Element && !!el.closest('[data-uiind]');
+  // 유리판 아래의 실제 요소 — disabled 버튼처럼 이벤트를 안 쏘는 요소도 좌표로 판별
+  const pick = (x, y) => document.elementsFromPoint(x, y)
+    .find((el) => !ours(el) && el !== document.documentElement && el !== document.body) || null;
 
   // ── 드래그 영역 선택(Annotate): 사각형에 완전히 포함된 "최상위" 요소만(자식 중복 제외)
   let dragStart = null;
@@ -328,7 +335,7 @@
     return [...within].filter((el) => !within.has(el.parentElement));
   };
   const onDown = (e) => {
-    if (!active || mode !== 'annotate' || e.button !== 0 || ours(e.target)) return;
+    if (!active || mode !== 'annotate' || e.button !== 0) return;
     dragStart = { x: e.clientX, y: e.clientY };
     dragging = false;
   };
@@ -376,15 +383,14 @@
       e.preventDefault();
       return;
     }
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (!el || ours(el) || el === document.documentElement || el === document.body) return hide();
+    const el = pick(e.clientX, e.clientY);
+    if (!el) return hide();
     target = el;
     show(el, e.clientX, e.clientY);
   };
   const onClick = (e) => {
     if (suppressClick) { suppressClick = false; e.preventDefault(); e.stopPropagation(); return; }
-    if (!active || ours(e.target)) return; // 판넬·툴바·마커·입력 클릭은 통과
-    if (!target) return;
+    if (!active || !target) return;
     e.preventDefault(); e.stopPropagation();
     if (mode === 'annotate') {
       const i = pending.findIndex((p) => p.el === target);
@@ -423,23 +429,34 @@
     if (e.key !== 'Escape') return;
     if (pending.length) { pending = []; renderPending(); return; }
     active = !active;
+    glass.style.display = active ? 'block' : 'none';
     if (!active) hide();
   };
 
-  addEventListener('mousedown', onDown, true);
-  addEventListener('mouseup', onUp, true);
-  addEventListener('mousemove', onMove, true);
-  addEventListener('click', onClick, true);
+  // 마우스는 유리판이 전담(앱에 이벤트 미전달 — disabled 요소·드롭다운도 선택 가능), 키만 전역
+  glass.addEventListener('mouseleave', hide); // 툴바·판넬 위로 나가면 hover 표시 정리
+  glass.addEventListener('mousedown', onDown);
+  glass.addEventListener('mouseup', onUp);
+  glass.addEventListener('mousemove', onMove);
+  glass.addEventListener('click', onClick);
+  glass.addEventListener('wheel', (e) => { // 스크롤을 아래 스크롤 컨테이너로 전달(기본 동작은 막아 이중 스크롤 방지)
+    e.preventDefault();
+    for (let cur = pick(e.clientX, e.clientY); cur && cur !== document.body; cur = cur.parentElement) {
+      const cs = getComputedStyle(cur);
+      if (/(auto|scroll)/.test(cs.overflowY) && cur.scrollHeight > cur.clientHeight) { cur.scrollBy(e.deltaX, e.deltaY); return; }
+    }
+    window.scrollBy(e.deltaX, e.deltaY);
+  }, { passive: false });
   addEventListener('keydown', onKey, true);
 
   window.__uiIndicator = {
     enable: () => {
-      active = true; toolbar.style.display = 'flex'; markers.style.display = '';
+      active = true; toolbar.style.display = 'flex'; markers.style.display = ''; glass.style.display = 'block';
       try { sessionStorage.setItem('ui-indicator', '1'); } catch { /* 저장 불가 환경 */ }
     },
     disable: () => {
       active = false; hide(); pending = []; renderPending();
-      panel.style.display = toolbar.style.display = band.style.display = markers.style.display = 'none';
+      panel.style.display = toolbar.style.display = band.style.display = markers.style.display = glass.style.display = 'none';
       document.body.style.userSelect = '';
       dragStart = null; dragging = false;
       try { sessionStorage.removeItem('ui-indicator'); } catch { /* 저장 불가 환경 */ }
