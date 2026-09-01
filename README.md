@@ -81,8 +81,6 @@ if (import.meta.env.DEV) {
 
 접속: `http://localhost:<port>/<경로>?ui=1` 또는 아무 화면에서 `Ctrl+Shift+U`.
 
-다른 스택도 원리는 동일(① dev 전용으로 inspector.js 서빙 ② 게이트 스크립트) — 스택별 가이드는 늘리지 않는다. AI 코딩 도구 사용 중이면 "ui-indicator 자동로드 설치해줘"로 해당 스택에 맞게 이식시키면 됨. 손 못 대는 사이트는 북마클릿/Tampermonkey.
-
 ### 3) Django에 자동로드 설치
 
 `urls.py` — DEBUG일 때만 파일 서빙:
@@ -130,7 +128,94 @@ urlpatterns = [
 
 `{% if debug %}`는 `django.template.context_processors.debug` 활성 + `INTERNAL_IPS`에 접속 IP 등록이 전제(안 쓰면 뷰가 DEBUG 게이트라 태그 없이 넣어도 프로덕션에선 404). 주석 자동 수집을 원하면 아래 "AI 연동 규약"의 `/api/dev/ui-annotations` 3개 엔드포인트를 DEBUG 전용 뷰로 동일하게 구현(인메모리 dict면 충분).
 
-### 3) Claude Code 스킬로 설치
+### 4) 기타 스택 (webpack · Next.js · Express · Flask · FastAPI)
+
+원리는 전부 동일: ① dev 전용으로 `scripts/inspector.js`를 `/__ui-indicator.js`로 서빙(`Cache-Control: no-store`) ② **공통 게이트**(위 Django 예시의 `<script>` 블록)를 HTML/템플릿/엔트리에 dev 조건으로 삽입. 아래는 스택별 ①(서빙)만 — ②는 공통 게이트 재사용.
+
+**webpack** (`webpack.config.js` · webpack-dev-server v4+):
+
+```js
+const fs = require('node:fs')
+const path = require('node:path')
+
+devServer: {
+  setupMiddlewares(middlewares, devServer) {
+    devServer.app.get('/__ui-indicator.js', (_req, res) => {
+      res.set({ 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.send(fs.readFileSync(path.join(__dirname, 'ui-indicator/scripts/inspector.js'), 'utf8'))
+    })
+    return middlewares
+  },
+},
+```
+
+게이트는 엔트리에서 `if (process.env.NODE_ENV === 'development') { /* 공통 게이트 */ }`.
+
+**Next.js** (App Router · `app/__ui-indicator.js/route.ts`):
+
+```ts
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+export async function GET() {
+  if (process.env.NODE_ENV !== 'development') return new Response(null, { status: 404 })
+  const js = readFileSync(join(process.cwd(), 'ui-indicator/scripts/inspector.js'), 'utf8')
+  return new Response(js, {
+    headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' },
+  })
+}
+```
+
+게이트는 루트 `layout.tsx`에서 `{process.env.NODE_ENV === 'development' && <script dangerouslySetInnerHTML={{ __html: GATE_JS }} />}` (GATE_JS = 공통 게이트 문자열).
+
+**Express** (백엔드가 프론트도 서빙하는 경우):
+
+```js
+const fs = require('node:fs')
+const path = require('node:path')
+
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/__ui-indicator.js', (_req, res) => {
+    res.type('text/javascript').set('Cache-Control', 'no-store')
+    res.send(fs.readFileSync(path.join(__dirname, 'ui-indicator/scripts/inspector.js'), 'utf8'))
+  })
+}
+```
+
+**Flask**:
+
+```python
+from pathlib import Path
+from flask import Response, abort
+
+@app.route("/__ui-indicator.js")
+def ui_indicator_js():
+    if not app.debug:
+        abort(404)
+    js = (Path(app.root_path) / "ui-indicator" / "scripts" / "inspector.js").read_text(encoding="utf-8")
+    return Response(js, mimetype="text/javascript", headers={"Cache-Control": "no-store"})
+```
+
+게이트는 Jinja 템플릿에서 `{% if config.DEBUG %} … {% endif %}`.
+
+**FastAPI** (템플릿/정적 프론트를 함께 서빙하는 경우):
+
+```python
+from pathlib import Path
+from fastapi import HTTPException
+from fastapi.responses import Response
+
+@app.get("/__ui-indicator.js")
+def ui_indicator_js():
+    if not DEV_MODE:  # 환경변수 등 프로젝트의 dev 판별값
+        raise HTTPException(404)
+    js = Path("ui-indicator/scripts/inspector.js").read_text(encoding="utf-8")
+    return Response(js, media_type="text/javascript; charset=utf-8", headers={"Cache-Control": "no-store"})
+```
+
+여기 없는 스택도 같은 두 조각이면 됨 — AI 코딩 도구 사용 중이면 "ui-indicator 자동로드 설치해줘"로 이식. 손 못 대는 사이트는 북마클릿/Tampermonkey.
+
+### 5) Claude Code 스킬로 설치
 
 ```bash
 git clone https://github.com/boonblade/ui-indicator.git ~/.claude/skills/ui-indicator
