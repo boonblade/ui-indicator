@@ -448,6 +448,11 @@
     window.scrollBy(e.deltaX, e.deltaY);
   }, { passive: false });
   addEventListener('keydown', onKey, true);
+  // 모달 focus trap 차단 — 오버레이(주석 textarea 등)로 포커스가 오갈 때 document 단의 focusin/focusout
+  // 리스너(MUI·Bootstrap·Radix·focus-trap)가 포커스를 다이얼로그로 되돌리지 못하게 window 캡처 단계에서 끊는다
+  for (const type of ['focusin', 'focusout', 'focus', 'blur']) {
+    addEventListener(type, (e) => { if (ours(e.target) || ours(e.relatedTarget)) e.stopImmediatePropagation(); }, true);
+  }
 
   window.__uiIndicator = {
     enable: () => {
