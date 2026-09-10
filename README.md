@@ -1,43 +1,45 @@
 # ui-indicator
 
-브라우저 화면에 개발자도구 인스펙터식 오버레이를 띄워, **화면 요소를 이름(고유 선택자)으로 특정**하고 **주석으로 수정 요청을 남겨 AI 코딩 도구(Claude Code 등)가 바로 판독·수정**하게 하는 개발 보조 도구.
+*[한국어 문서](README.ko.md)*
 
-> "우측 판넬의 오른쪽 이미지 줄여줘" 대신 — 요소를 찍고 "이거 줄여줘". AI가 정확한 위치를 즉시 안다.
+A dev-tools-style inspector overlay you inject into any page. Point at a screen element to get its **unique selector**, or leave **annotations** that an AI coding tool (Claude Code and friends) reads and acts on.
 
-순수 DOM 스크립트 1파일(`scripts/inspector.js`) — 프레임워크·사이트 무관, 페이지 소스 무변경(오버레이 전용).
+> Instead of "shrink the image on the right side of the right panel" — click the element and say "shrink this". The AI knows exactly which node you mean.
 
-## 기능
+One pure-DOM script (`scripts/inspector.js`). No framework assumptions, no build step, no dependencies. It never modifies the page source; everything it adds is overlay-only and tagged `data-uiind`.
 
-- **Indicator 모드**: hover = 요소 테두리 + 고유 선택자 이름표 · 클릭 = 우측 속성 판넬
-  - **NAME**: 요소 이름 + 종류 배지(ID/CLASS/TESTID/TAG) + 전체 선택자 경로 + 선택자/JSON 복사
-  - **DESIGN TERM**: 요소 역할 자동 판별(BUTTON·LINK·INPUT·CARD·TEXT 등 12종) + 한 줄 설명
-  - **SPEC**: 태그·크기 + 클래스·텍스트 + computed style 표
-- **Comment 모드**: 클릭(재클릭=해제) 또는 **드래그 영역**(사각형에 완전 포함된 최상위 요소만)으로 다중 선택 → "N elements selected" 판넬에서 메모 → **Add** → 요소마다 번호 뱃지(뱃지 클릭=삭제)
-- **고유 선택자 자동 생성**: id > data-testid > 클래스+nth-of-type 조합으로 문서 내 유일한 최단 경로 — 유틸 클래스 위주 코드베이스에서도 모호하지 않음
-- **AI 연동 기록**: 선택·주석이 `window.__uiSelections` / `window.__uiAnnotations`에 쌓임 — AI가 직접 판독. `Copy Prompt` 버튼은 주석을 수정 지시문으로 조립
-- **온오프**: `Ctrl+Shift+U` 토글(탭 세션 유지) · URL `?ui=1`/`?ui=0` · 툴바 ✕ · `Esc` = 선택 취소/일시정지
+## Features
 
-## 빠른 시작
+- **Indicator mode**: hover outlines an element and shows its unique selector; click opens the property panel.
+  - **NAME**: element name, kind badge (ID/CLASS/TESTID/TAG), full selector path, copy-selector / copy-JSON buttons
+  - **DESIGN TERM**: role auto-detection across 12 kinds (BUTTON, LINK, INPUT, LABEL, IMAGE, HEADING, NAV, TABLE, LIST, TEXT, CARD, CONTAINER) with a one-line description
+  - **SPEC**: tag and size, classes, text, computed-style table
+- **Comment mode**: select many elements by clicking (click again to deselect) or by **dragging a region** (only the top-most elements fully inside the rectangle). Write a note in the "N elements selected" panel, press **Add**, and each element gets a numbered badge. Click a badge to delete that annotation.
+- **Unique selectors**: `id` > `data-testid` > class + `:nth-of-type`, walking up only as far as needed to be unique in the document. Stays unambiguous in utility-class codebases.
+- **AI-readable state**: selections and annotations accumulate on `window.__uiSelections` / `window.__uiAnnotations` for an AI to read directly. `Copy Prompt` turns the annotations into a ready-to-paste instruction.
+- **Toggle**: `Ctrl+Shift+U` (persists for the tab session via `sessionStorage`), toolbar `✕`, or `Esc` to clear the pending selection and pause. With autoload installed you also get `?ui=1` / `?ui=0` on the URL — that gate lives in the loader snippet, not in the script.
 
-### 1) 자동로드 없이 쓰기 (설치 0 · 아무 페이지)
+## Quick start
 
-**콘솔 붙여넣기** — 일회용으로 가장 빠름:
-1. 대상 페이지에서 `F12` → Console 탭
-2. `scripts/inspector.js` 파일 내용 전체를 붙여넣고 Enter
-3. 하단 툴바(`Indicator · Comment · Copy Prompt · ✕`)가 뜨면 끝
+### 1) No install (any page)
 
-**북마클릿** — 클릭 1번으로 재사용:
-1. 브라우저에서 새 북마크 생성
-2. URL 칸에 `javascript:` 를 직접 타이핑한 뒤(붙여넣기 시 접두어가 지워지는 브라우저가 있음), 이어서 `scripts/inspector.js` 내용 전체를 붙여넣고 저장
-3. 아무 페이지에서 그 북마크 클릭 = 주입
+**Paste into the console** — fastest for one-off use:
+1. Press `F12` on the target page, open the Console tab
+2. Paste the entire contents of `scripts/inspector.js`, press Enter
+3. The bottom toolbar (`Indicator · Comment · Copy Prompt · ✕`) appears
 
-**Claude Code에서** — `/ui-indicator` 호출하면 Claude가 브라우저 팬에 대신 주입해줌(SKILL.md 참조).
+**Bookmarklet** — one click, reusable:
+1. Create a new bookmark
+2. In the URL field type `javascript:` by hand (some browsers strip a pasted prefix), then paste the whole of `scripts/inspector.js` after it and save
+3. Click the bookmark on any page to inject
 
-수동 주입 공통 한계: **새로고침·페이지 이동 시 소멸**(다시 주입), 주석 자동 수집 없음 → 주석은 `Copy Prompt` 버튼으로 지시문을 복사해 AI에게 붙여넣어 전달.
+**From Claude Code** — run `/ui-indicator` and Claude injects it into the browser pane for you (see [SKILL.md](SKILL.md)).
 
-### 2) Vite 프로젝트에 자동로드 설치 (권장)
+Limits of manual injection: it **disappears on reload or navigation** (inject again), and there is no automatic annotation collection — use `Copy Prompt` and paste the instruction to your AI.
 
-`vite.config.ts` — dev 전용 서빙(프로덕션 빌드 미포함):
+### 2) Autoload in Vite (recommended)
+
+`vite.config.ts` — dev-only, never in a production build:
 
 ```ts
 import { readFileSync } from 'node:fs'
@@ -57,7 +59,7 @@ const uiIndicatorDev = () => ({
 // plugins: [react(), uiIndicatorDev()]
 ```
 
-엔트리(main.tsx 등) — `?ui=1` 게이트 + 콜드스타트 단축키:
+Entry file (`main.tsx` or similar) — the `?ui=1` gate plus a cold-start shortcut:
 
 ```ts
 if (import.meta.env.DEV) {
@@ -79,11 +81,11 @@ if (import.meta.env.DEV) {
 }
 ```
 
-접속: `http://localhost:<port>/<경로>?ui=1` 또는 아무 화면에서 `Ctrl+Shift+U`.
+Open `http://localhost:<port>/<path>?ui=1`, or hit `Ctrl+Shift+U` on any screen.
 
-### 3) Django에 자동로드 설치
+### 3) Autoload in Django
 
-`urls.py` — DEBUG일 때만 파일 서빙:
+`urls.py` — serve the file only under DEBUG:
 
 ```python
 from pathlib import Path
@@ -101,11 +103,11 @@ def ui_indicator_js(request):
 
 urlpatterns = [
     path("__ui-indicator.js", ui_indicator_js),
-    # ...기존 패턴
+    # ...your existing patterns
 ]
 ```
 
-공통 템플릿(`base.html`) `</body>` 직전 — `?ui=1` 게이트 + Ctrl+Shift+U:
+Base template (`base.html`), just before `</body>` — the `?ui=1` gate plus `Ctrl+Shift+U`:
 
 ```html
 {% if debug %}
@@ -126,13 +128,13 @@ urlpatterns = [
 {% endif %}
 ```
 
-`{% if debug %}`는 `django.template.context_processors.debug` 활성 + `INTERNAL_IPS`에 접속 IP 등록이 전제(안 쓰면 뷰가 DEBUG 게이트라 태그 없이 넣어도 프로덕션에선 404). 주석 자동 수집을 원하면 아래 "AI 연동 규약"의 `/api/dev/ui-annotations` 3개 엔드포인트를 DEBUG 전용 뷰로 동일하게 구현(인메모리 dict면 충분).
+`{% if debug %}` needs `django.template.context_processors.debug` enabled and your IP in `INTERNAL_IPS`. If you skip the tag entirely the view is still DEBUG-gated, so production returns 404 either way. For automatic annotation collection, add the three `/api/dev/ui-annotations` endpoints from the [AI contract](#ai-contract) below as DEBUG-only views — an in-memory dict is enough.
 
-### 4) 기타 스택 (webpack · Next.js · Express · Flask · FastAPI)
+### 4) Other stacks (webpack · Next.js · Express · Flask · FastAPI)
 
-원리는 전부 동일: ① dev 전용으로 `scripts/inspector.js`를 `/__ui-indicator.js`로 서빙(`Cache-Control: no-store`) ② **공통 게이트**(위 Django 예시의 `<script>` 블록)를 HTML/템플릿/엔트리에 dev 조건으로 삽입. 아래는 스택별 ①(서빙)만 — ②는 공통 게이트 재사용.
+Two pieces, always the same: ① serve `scripts/inspector.js` at `/__ui-indicator.js` in dev only, with `Cache-Control: no-store`; ② insert the **shared gate** (the `<script>` block from the Django example) into your HTML, template, or entry file under a dev condition. Only ① differs per stack; reuse the same gate for ②.
 
-**webpack** (`webpack.config.js` · webpack-dev-server v4+):
+**webpack** (`webpack.config.js`, webpack-dev-server v4+):
 
 ```js
 const fs = require('node:fs')
@@ -149,9 +151,9 @@ devServer: {
 },
 ```
 
-게이트는 엔트리에서 `if (process.env.NODE_ENV === 'development') { /* 공통 게이트 */ }`.
+Gate goes in the entry file: `if (process.env.NODE_ENV === 'development') { /* shared gate */ }`.
 
-**Next.js** (App Router · `app/__ui-indicator.js/route.ts`):
+**Next.js** (App Router, `app/__ui-indicator.js/route.ts`):
 
 ```ts
 import { readFileSync } from 'node:fs'
@@ -166,9 +168,9 @@ export async function GET() {
 }
 ```
 
-게이트는 루트 `layout.tsx`에서 `{process.env.NODE_ENV === 'development' && <script dangerouslySetInnerHTML={{ __html: GATE_JS }} />}` (GATE_JS = 공통 게이트 문자열).
+Gate goes in the root `layout.tsx`: `{process.env.NODE_ENV === 'development' && <script dangerouslySetInnerHTML={{ __html: GATE_JS }} />}`, where `GATE_JS` is the shared gate as a string.
 
-**Express** (백엔드가 프론트도 서빙하는 경우):
+**Express** (backend also serving the frontend):
 
 ```js
 const fs = require('node:fs')
@@ -196,9 +198,9 @@ def ui_indicator_js():
     return Response(js, mimetype="text/javascript", headers={"Cache-Control": "no-store"})
 ```
 
-게이트는 Jinja 템플릿에서 `{% if config.DEBUG %} … {% endif %}`.
+Gate goes in the Jinja template: `{% if config.DEBUG %} … {% endif %}`.
 
-**FastAPI** (템플릿/정적 프론트를 함께 서빙하는 경우):
+**FastAPI** (serving templates or a static frontend):
 
 ```python
 from pathlib import Path
@@ -207,45 +209,48 @@ from fastapi.responses import Response
 
 @app.get("/__ui-indicator.js")
 def ui_indicator_js():
-    if not DEV_MODE:  # 환경변수 등 프로젝트의 dev 판별값
+    if not DEV_MODE:  # your project's dev flag, e.g. an env var
         raise HTTPException(404)
     js = Path("ui-indicator/scripts/inspector.js").read_text(encoding="utf-8")
     return Response(js, media_type="text/javascript; charset=utf-8", headers={"Cache-Control": "no-store"})
 ```
 
-여기 없는 스택도 같은 두 조각이면 됨 — AI 코딩 도구 사용 중이면 "ui-indicator 자동로드 설치해줘"로 이식. 손 못 대는 사이트는 북마클릿/Tampermonkey.
+Any other stack needs the same two pieces. If you already use an AI coding tool, "install ui-indicator autoload" is usually enough of a prompt to port it. For sites you don't control, use the bookmarklet or Tampermonkey.
 
-### 5) Claude Code 스킬로 설치
+### 5) Install as a Claude Code skill
 
 ```bash
 git clone https://github.com/boonblade/ui-indicator.git ~/.claude/skills/ui-indicator
 ```
 
-이후 어느 프로젝트에서든 `/ui-indicator` 로 호출 — 상세 지침은 [SKILL.md](SKILL.md).
+Then call `/ui-indicator` from any project. Details in [SKILL.md](SKILL.md).
 
-## AI 연동 규약
+## AI contract
 
 ```js
-window.__uiSelections        // Indicator 클릭 기록 [{selector, tag, id, classes, term, text, size, styles, at}] 최근 20개
-window.__uiAnnotations       // 주석 [{n, note, url, targets:[{selector, term, page}], at}]
-window.__uiIndicator.prompt() // 주석 → 수정 지시문 텍스트
+window.__uiSelections         // Indicator clicks: [{selector, tag, id, classes, term, text, size, styles, at}], newest 20
+window.__uiAnnotations        // annotations: [{n, note, url, targets: [{selector, term, page}], at}]
+window.__uiIndicator.prompt() // annotations rendered as an instruction string
+window.__uiIndicator.selections / .annotations   // same arrays, read-only getters
 window.__uiIndicator.enable() / .disable()
 ```
 
-**주석 자동 수집(선택)**: 오버레이는 주석 Add/삭제마다 전체 목록을 `POST /api/dev/ui-annotations` 로 밀어넣는다(같은 오리진·엔드포인트 없으면 조용히 스킵). 백엔드에 아래 규약의 dev 전용 엔드포인트를 두면, 사용자가 어느 브라우저에서 주석을 달아도 AI가 API로 판독 가능:
+`url` and the annotation `page` coordinates come from `location.pathname` and page-space rects, so an AI can tell which route and which spot on it a note refers to.
 
-- `POST /api/dev/ui-annotations` — body `{annotations: [...], url}` (전체 교체 저장, 상한 100)
-- `GET /api/dev/ui-annotations` — `{annotations, url, updated_at}` 반환
-- `DELETE /api/dev/ui-annotations` — 처리 완료 후 비움
+**Optional annotation collection.** Every time an annotation is added or deleted, the overlay pushes the whole list to `POST /api/dev/ui-annotations` on the same origin. If no such endpoint exists the request fails silently and nothing breaks. Implement these dev-only endpoints and an AI can read annotations over HTTP no matter which browser they were written in:
 
-인메모리면 충분(주석은 즉시 소비되는 임시 데이터).
+- `POST /api/dev/ui-annotations` — body `{annotations: [...], url}`, replaces the stored list (cap it at 100)
+- `GET /api/dev/ui-annotations` — returns `{annotations, url, updated_at}`
+- `DELETE /api/dev/ui-annotations` — clear once the requests are handled
 
-## 워크플로 예시 (Claude Code)
+In-memory storage is fine. Annotations are throwaway data, consumed as soon as the AI reads them.
 
-1. `?ui=1` 화면에서 Comment → 요소 드래그 → 메모 "글자 한 단계 키워줘" → Add
-2. Claude에게: **"주석 확인해서 수정해줘"**
-3. Claude가 주석(선택자·역할·메모)을 판독 → 소스에서 해당 컴포넌트 특정 → 수정 → 번호별 보고
+## Example workflow (Claude Code)
 
-## 라이선스
+1. On a `?ui=1` screen: Comment mode, drag over the elements, write "bump the font one step", press Add
+2. Tell Claude: **"read the annotations and fix them"**
+3. Claude reads each annotation (selector, role, note), finds the component in the source, edits it, and reports per annotation number
 
-MIT
+## License
+
+MIT. Change history: [HISTORY.md](HISTORY.md).
