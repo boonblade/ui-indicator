@@ -253,4 +253,4 @@ window.__uiIndicator.enable() / .disable()
 
 ## 라이선스
 
-MIT. 변경 이력: [HISTORY.md](HISTORY.md).
+MIT. 변경 이력: [CHANGELOG.md](CHANGELOG.md).

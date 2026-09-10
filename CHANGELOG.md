@@ -1,4 +1,4 @@
-# History
+# Changelog
 
 Notable changes, newest first. Dates are commit dates. Short hashes refer to the current `master`.
 
@@ -10,7 +10,7 @@ Notable changes, newest first. Dates are commit dates. Short hashes refer to the
   - `Ctrl+Shift+U` inside the script toggles an already-injected overlay; cold start from the shortcut needs the loader's key listener
   - the public API also exposes the `selections` and `annotations` getters, which the docs omitted
   - the annotation `url` field is `location.pathname`, and `page` coordinates are page-space rects
-- Added this history file.
+- Added this changelog.
 
 ## 2026-09-09
 

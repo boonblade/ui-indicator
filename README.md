@@ -253,4 +253,4 @@ In-memory storage is fine. Annotations are throwaway data, consumed as soon as t
 
 ## License
 
-MIT. Change history: [HISTORY.md](HISTORY.md).
+MIT. Change history: [CHANGELOG.md](CHANGELOG.md).
